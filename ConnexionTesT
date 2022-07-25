@@ -3,9 +3,9 @@ import ta
 import pandas as pd
 
 ftx = cBot_perp_ftx(
-        apiKey='AwZARgEctuWf8ww_43d5jICN7naI7IfB_exaxxxR',
-        secret='RwKaZE2oIqi8Dsd8tz_agOfOgwXxznfkgIWtsKj8',
-        subAccountName='Gregory-Gaspard'
+        apiKey='',
+        secret='',
+        subAccountName=''
     )
 
 # -- Strategy variable --
