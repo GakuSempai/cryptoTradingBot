@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
+const Ticket = require('../models/Ticket');
 const multer = require('multer');
 const path = require('path');
 
@@ -127,8 +128,7 @@ router.get('/my_organisation_dashboard_subscription', (req, res) => {
   res.render('my_organisation_dashboard_subscription', { activePage: 'subscription' });
 });
 
-
-// Route to create a new event  
+// Route to create a new event et tickets associés
 router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
   console.log('--- Données reçues du formulaire : ---');
   console.log(req.body);
@@ -232,11 +232,63 @@ router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
       }
     }
 
-    // après avoir fait tous les traitements de valeurs et de conditions on doit pouvoir créer un nouvel event : 
+    // Création de l'événement principal
     const newEvent = new Event(eventData);
     await newEvent.save();
 
-    res.status(201).json({ message: 'Event created successfully', event: newEvent });
+    // Création des tickets associés si fournis
+    const createdTickets = [];
+    const failedTickets = [];
+    if (req.body.tickets) {
+      let tickets = [];
+      try {
+        tickets = typeof req.body.tickets === 'string'
+          ? JSON.parse(req.body.tickets)
+          : req.body.tickets;
+      } catch (e) {
+        console.error('Invalid tickets JSON', e);
+      }
+
+      for (const ticket of tickets) {
+        try {
+          const ticketData = {
+            eventId: newEvent._id,
+            name: ticket.name,
+            nbTicketsMaxSet: ticket.nbTicketsMaxSet,
+            nbTicketsMax: ticket.nbTicketsMax,
+            nbTicketsMaxByUserSet: ticket.nbTicketsMaxByUserSet,
+            nbTicketsMaxByUser: ticket.nbTicketsMaxByUser,
+            ticketOrder: ticket.ticketOrder,
+            description: ticket.description,
+            price: ticket.price,
+            validityPeriodSet: false,
+            timeZone: newEvent.timeZone || 'UTC',
+            ticketsEndingDate: ticket.ticketsEndingDate,
+            ticketsEndingHour: ticket.ticketsEndingHour,
+            ticketsStartDate: ticket.ticketsStartDate,
+            ticketsStartHour: ticket.ticketsStartHour,
+            ticketDiscountSet: ticket.ticketDiscountSet,
+            ticketDiscountAmount: ticket.ticketDiscountAmount,
+            ticketDiscountLevel: ticket.ticketDiscountLevel,
+            ticketDiscountEndDate: ticket.ticketDiscountEndDate,
+            ticketDiscountEndTime: ticket.ticketDiscountEndTime
+          };
+          const newTicket = new Ticket(ticketData);
+          await newTicket.save();
+          createdTickets.push(newTicket);
+        } catch (err) {
+          // On signale le ticket échoué
+          failedTickets.push({ ticket, error: err.message });
+        }
+      }
+    }
+
+    res.status(201).json({ 
+      message: 'Event created successfully', 
+      event: newEvent, 
+      tickets: createdTickets,
+      failedTickets: failedTickets.length > 0 ? failedTickets : undefined
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error creating event', error });
   }

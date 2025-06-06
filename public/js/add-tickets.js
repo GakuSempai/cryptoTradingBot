@@ -18,12 +18,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const saveButton = document.querySelector('#singleTicketModal .main-btn');
     const ticketList = document.querySelector('.ticket-type-item-list');
+    const ticketsDataInput = document.getElementById('tickets-data');
+    const ticketCounter = document.querySelector('.venue-event-ticket-counter');
+    const emptyBlock = document.querySelector('.ticket-type-item-empty');
+
+    let ticketsData = [];
 	
 	const cancelButton = document.querySelector('.co-main-btn'); // Bouton Cancel
     const closeButton = document.querySelector('.close-model-btn'); // Bouton Close
     const dropdownMenuButton = document.getElementById('dropdownMenuButton'); // Bouton pour ouvrir le modal
 
     let currentEditTicket = null;
+    let currentEditId = null;
+    let idCounter = 0;
 
     saveButton.addEventListener('click', function() {
         if (validateForm()) {
@@ -44,13 +51,15 @@ document.addEventListener('DOMContentLoaded', function() {
     cancelButton.addEventListener('click', resetForm);
     closeButton.addEventListener('click', resetForm);
     dropdownMenuButton.addEventListener('click', function() {
-        currentEditTicket = null;
+                currentEditTicket = null;
+                currentEditId = null;
         resetForm();
     });
 
     // Réinitialiser le formulaire lorsque le modal est fermé par n'importe quel moyen
     $('#singleTicketModal').on('hide.bs.modal', function() {
         currentEditTicket = null;
+        currentEditId = null;
         resetForm();
     });
 
@@ -257,7 +266,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p>${ticketDescription.value}</p>
             </div>
         `;
+        ticketItem.dataset.ticketId = idCounter++;
         ticketList.appendChild(ticketItem);
+
+        const data = {
+            id: ticketItem.dataset.ticketId,
+            name: ticketName.value,
+            nbTicketsMaxSet: !restrictTotalTickets.checked,
+            nbTicketsMax: restrictTotalTickets.checked ? null : parseInt(totalTickets.value),
+            nbTicketsMaxByUserSet: !restrictTicketsPerUser.checked,
+            nbTicketsMaxByUser: restrictTicketsPerUser.checked ? null : parseInt(maxPerOrder.value),
+            ticketOrder: parseInt(ticketOrder.value),
+            description: ticketDescription.value,
+            price: freeEventTicketing.checked ? 0 : parseFloat(ticketPrice.value),
+            ticketDiscountSet: birdDiscountCheckbox.checked,
+            ticketDiscountAmount: birdDiscountCheckbox.checked ? parseFloat(ticketDiscountAmount.value) : 0,
+            ticketDiscountLevel: birdDiscountCheckbox.checked ? ticketDiscountLevel.value : '%',
+            ticketDiscountEndDate: birdDiscountCheckbox.checked ? discountEndDate.value : null,
+            ticketDiscountEndTime: birdDiscountCheckbox.checked ? discountEndTime.value : null
+        };
+        ticketsData.push(data);
+        updateTicketsData();
 
         ticketItem.querySelector('.edit-ticket').addEventListener('click', function() {
             editTicket(ticketItem);
@@ -375,6 +404,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ticketOrder.value = ticketItem.querySelector('.ticket-order').textContent || '1';
 
     currentEditTicket = ticketItem;
+    currentEditId = parseInt(ticketItem.dataset.ticketId);
 
     $('#singleTicketModal').modal('show');
 }
@@ -416,14 +446,49 @@ document.addEventListener('DOMContentLoaded', function() {
         currentEditTicket = null;
 
         toggleDiscountDisplay(ticketItem, !freeEventTicketing.checked && discountedPrice !== originalPrice);
+
+        const id = parseInt(ticketItem.dataset.ticketId);
+        const index = ticketsData.findIndex(t => parseInt(t.id) === id);
+        if (index !== -1) {
+            ticketsData[index] = {
+                id,
+                name: ticketName.value,
+                nbTicketsMaxSet: !restrictTotalTickets.checked,
+                nbTicketsMax: restrictTotalTickets.checked ? null : parseInt(totalTickets.value),
+                nbTicketsMaxByUserSet: !restrictTicketsPerUser.checked,
+                nbTicketsMaxByUser: restrictTicketsPerUser.checked ? null : parseInt(maxPerOrder.value),
+                ticketOrder: parseInt(ticketOrder.value),
+                description: ticketDescription.value,
+                price: freeEventTicketing.checked ? 0 : parseFloat(ticketPrice.value),
+                ticketDiscountSet: birdDiscountCheckbox.checked,
+                ticketDiscountAmount: birdDiscountCheckbox.checked ? parseFloat(ticketDiscountAmount.value) : 0,
+                ticketDiscountLevel: birdDiscountCheckbox.checked ? ticketDiscountLevel.value : '%',
+                ticketDiscountEndDate: birdDiscountCheckbox.checked ? discountEndDate.value : null,
+                ticketDiscountEndTime: birdDiscountCheckbox.checked ? discountEndTime.value : null
+            };
+        }
+        updateTicketsData();
     }
 
     function deleteTicket(ticketItem) {
+        const id = parseInt(ticketItem.dataset.ticketId);
+        ticketsData = ticketsData.filter(t => parseInt(t.id) !== id);
         ticketList.removeChild(ticketItem);
+        updateTicketsData();
+    }
+
+    function updateTicketsData() {
+        ticketsDataInput.value = JSON.stringify(ticketsData);
+        ticketCounter.textContent = ticketsData.length;
+        if (ticketsData.length === 0) {
+            emptyBlock.classList.remove('d-none');
+        } else {
+            emptyBlock.classList.add('d-none');
+        }
     }
 
     function resetForm() {
-		// Réinitialiser les champs de texte
+                // Réinitialiser les champs de texte
 		ticketName.value = '';
 		totalTickets.value = '';
 		maxPerOrder.value = '';
@@ -456,11 +521,12 @@ document.addEventListener('DOMContentLoaded', function() {
 		currentEditTicket = null;
 
 		// Assurez-vous que les éléments sont masqués ou affichés en fonction de la case à cocher du ticket gratuit
-		if (freeEventTicketing.checked) {
-			$('.disabled-action').hide();
-		} else {
-			$('.disabled-action').show();
-		}
-	}
+                if (freeEventTicketing.checked) {
+                        $('.disabled-action').hide();
+                } else {
+                        $('.disabled-action').show();
+                }
+        }
 
+        updateTicketsData();
 });
