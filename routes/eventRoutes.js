@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
+const Ticket = require('../models/Ticket');
 const multer = require('multer');
 const path = require('path');
 
@@ -239,7 +240,47 @@ router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
     res.status(201).json({ message: 'Event created successfully', event: newEvent });
   } catch (error) {
     res.status(500).json({ message: 'Error creating event', error });
-  }
-});
+        const newEvent = new Event(eventData);
+        await newEvent.save();
 
-module.exports = router;
+        // Créer les tickets associés si fournis
+        const createdTickets = [];
+        if (req.body.tickets) {
+            let tickets = [];
+            try {
+                tickets = JSON.parse(req.body.tickets);
+            } catch (e) {
+                console.error('Invalid tickets JSON', e);
+            }
+
+            for (const ticket of tickets) {
+                const ticketData = {
+                    eventId: newEvent._id,
+                    name: ticket.name,
+                    nbTicketsMaxSet: ticket.nbTicketsMaxSet,
+                    nbTicketsMax: ticket.nbTicketsMax,
+                    nbTicketsMaxByUserSet: ticket.nbTicketsMaxByUserSet,
+                    nbTicketsMaxByUser: ticket.nbTicketsMaxByUser,
+                    ticketOrder: ticket.ticketOrder,
+                    description: ticket.description,
+                    price: ticket.price,
+                    validityPeriodSet: false,
+                    timeZone: newEvent.timeZone || 'UTC',
+                    ticketsEndingDate: ticket.ticketsEndingDate,
+                    ticketsEndingHour: ticket.ticketsEndingHour,
+                    ticketsStartDate: ticket.ticketsStartDate,
+                    ticketsStartHour: ticket.ticketsStartHour,
+                    ticketDiscountSet: ticket.ticketDiscountSet,
+                    ticketDiscountAmount: ticket.ticketDiscountAmount,
+                    ticketDiscountLevel: ticket.ticketDiscountLevel,
+                    ticketDiscountEndDate: ticket.ticketDiscountEndDate,
+                    ticketDiscountEndTime: ticket.ticketDiscountEndTime
+                };
+
+                const newTicket = new Ticket(ticketData);
+                await newTicket.save();
+                createdTickets.push(newTicket);
+            }
+        }
+
+        res.status(201).json({ message: 'Event created successfully', event: newEvent, tickets: createdTickets });
