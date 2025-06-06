@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
+const Ticket = require('../models/Ticket');
+const multer = require('multer');
+const path = require('path');
+
+const upload = multer({ dest: path.join('public', 'uploads') });
 
 // Page de création d'événements en ligne
 router.get('/create_online_event', (req, res) => {
@@ -125,20 +130,57 @@ router.get('/my_organisation_dashboard_subscription', (req, res) => {
 
 
 // Route to create a new event  
-router.post('/submit_event', async (req, res) => { 
-	console.log('--- Données reçues du formulaire : ---');
-	console.log(req.body);
-	console.log('--------------------------------------');
-    try {  
-		req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
+router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
+        console.log('--- Données reçues du formulaire : ---');
+        console.log(req.body);
+        console.log('--------------------------------------');
+    try {
+                req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
 
-        const eventData = {  
-            organiserId: req.body.organiserId,  
-            type: req.body.type,  
-            eventName: req.body.eventName,  
-            visibility: req.body.visibility,  
-            description: req.body.description,  
-            flyerUrl: req.body.flyerUrl,  
+        // Convert checkbox values ("on" when checked) to booleans
+        const bookingStartPeriodSet = req.body.bookingStartPeriodSet === 'on';
+        const bookingEndPeriodSet   = req.body.bookingEndPeriodSet === 'on';
+        const comInPrice            = req.body.comInPrice === 'on';
+
+        // Map HTML event type codes to labels expected by the schema.
+        // If the form submits an array (old bug), keep only the first value.
+        const typeMap = {
+            club: 'Soirée club',
+            concert: 'Concert',
+            afterwork: 'Afterwork',
+            diner: 'Dîner - spectacle',
+            afterbeach: 'After beach',
+            festival: 'Festival',
+            garden: 'Garden - Journée détente',
+            spectacle: 'Spectacle',
+            excursion: 'Excursion',
+            animation: 'Animation en plein air',
+            match: 'Match ou exhibition sportive',
+            aboutSport: 'Evenement sportif',
+            seminaire: 'Séminaire - Convention Interne',
+            forum: 'Forum',
+            conference: 'Conférence',
+            congres: 'Congrès',
+            zen: 'Journée bien-être et remise en forme',
+            atelier: 'Workshop',
+            salon: 'Salon professionnel',
+            autres: 'Salon grand public'
+        };
+
+        const selectedType = Array.isArray(req.body.type)
+            ? req.body.type[0]
+            : req.body.type;
+        const formattedType = typeMap[selectedType] || selectedType;
+
+        const flyerUrls = req.files ? req.files.map(file => '/uploads/' + file.filename) : [];
+
+        const eventData = {
+            organiserId: req.body.organiserId,
+            type: formattedType,
+            eventName: req.body.eventName,
+            visibility: req.body.visibility,
+            description: req.body.description,
+            flyerUrls,
             placeName: req.body.placeName,  
             addressLine1: req.body.addressLine1,  
             addressLine2: req.body.addressLine2,  
@@ -153,18 +195,18 @@ router.post('/submit_event', async (req, res) => {
             capacity: req.body.capacity,  
             price: req.body.price,
 			
-            state: 'active',  
-  
-			bookingStartPeriodSet: req.body.bookingStartPeriodSet,			
+            state: 'active',
+
+                        bookingStartPeriodSet: bookingStartPeriodSet,
             bookingStartDate: req.body.bookingStartDate,  
             bookingStartHour: req.body.bookingStartHour,
 			
-            bookingEndPeriodSet: req.body.bookingEndPeriodSet,  
+            bookingEndPeriodSet: bookingEndPeriodSet,
             bookingEndingDate: req.body.bookingEndingDate,  
             bookingEndingHour: req.body.bookingEndingHour,
 			
-			duration: req.body.duration,
-			comInPrice: req.body.comInPrice, // je vien de rajouter ça le 5 novembre
+                        duration: req.body.duration,
+                        comInPrice: comInPrice, // je vien de rajouter ça le 5 novembre
               
             
 			// Initialisation des paramètres de remboursement simplifiés
@@ -223,10 +265,50 @@ router.post('/submit_event', async (req, res) => {
 		// après avoir fait tous les traitements de valeurs et de conditions on doit pouvoir crééer un nouvel event : 
 	
         // Create a new event		
-        const newEvent = new Event(eventData);  
-        await newEvent.save();  
-  
-        res.status(201).json({ message: 'Event created successfully', event: newEvent });  
+        const newEvent = new Event(eventData);
+        await newEvent.save();
+
+        // Créer les tickets associés si fournis
+        const createdTickets = [];
+        if (req.body.tickets) {
+            let tickets = [];
+            try {
+                tickets = JSON.parse(req.body.tickets);
+            } catch (e) {
+                console.error('Invalid tickets JSON', e);
+            }
+
+            for (const ticket of tickets) {
+                const ticketData = {
+                    eventId: newEvent._id,
+                    name: ticket.name,
+                    nbTicketsMaxSet: ticket.nbTicketsMaxSet,
+                    nbTicketsMax: ticket.nbTicketsMax,
+                    nbTicketsMaxByUserSet: ticket.nbTicketsMaxByUserSet,
+                    nbTicketsMaxByUser: ticket.nbTicketsMaxByUser,
+                    ticketOrder: ticket.ticketOrder,
+                    description: ticket.description,
+                    price: ticket.price,
+                    validityPeriodSet: false,
+                    timeZone: newEvent.timeZone || 'UTC',
+                    ticketsEndingDate: ticket.ticketsEndingDate,
+                    ticketsEndingHour: ticket.ticketsEndingHour,
+                    ticketsStartDate: ticket.ticketsStartDate,
+                    ticketsStartHour: ticket.ticketsStartHour,
+                    ticketDiscountSet: ticket.ticketDiscountSet,
+                    ticketDiscountAmount: ticket.ticketDiscountAmount,
+                    ticketDiscountLevel: ticket.ticketDiscountLevel,
+                    ticketDiscountEndDate: ticket.ticketDiscountEndDate,
+                    ticketDiscountEndTime: ticket.ticketDiscountEndTime
+                };
+
+                const newTicket = new Ticket(ticketData);
+                await newTicket.save();
+                createdTickets.push(newTicket);
+            }
+        }
+
+        res.status(201).json({ message: 'Event created successfully', event: newEvent, tickets: createdTickets });
     } catch (error) {  
         res.status(500).json({ message: 'Error creating event', error });  
     }  
