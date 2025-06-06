@@ -134,16 +134,7 @@ router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
         console.log(req.body);
         console.log('--------------------------------------');
     try {
-                req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
-
-        // Normalize boolean checkboxes from the form
-        const bookingStartPeriodSet = Boolean(req.body.bookingStartPeriodSet);
-        const bookingEndPeriodSet = Boolean(req.body.bookingEndPeriodSet);
-        const comInPrice = Boolean(req.body.comInPrice);
-
-        // Map HTML event type codes to labels expected by the schema
-        // and handle the case where an array is submitted by keeping
-        // only the first selected value.
+        req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
         const typeMap = {
             club: 'Soirée club',
             concert: 'Concert',
@@ -167,14 +158,13 @@ router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
             autres: 'Salon grand public'
         };
 
+
         let typeValue = req.body.type;
         if (Array.isArray(typeValue)) {
             typeValue = typeValue[0];
         }
         const formattedType = typeMap[typeValue] || typeValue;
-
         const flyerUrls = req.files ? req.files.map(file => '/uploads/' + file.filename) : [];
-
         const eventData = {
             organiserId: req.body.organiserId,
             type: formattedType,
