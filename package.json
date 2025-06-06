@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "sass": "node-sass -w sass/ -o public/css/"
+    "sass": "node-sass -w sass/ -o public/css/",
+    "test": "node test/eventUtils.test.js"
   },
   "keywords": [],
   "author": "",

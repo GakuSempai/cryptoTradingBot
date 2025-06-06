@@ -4,6 +4,7 @@ const Event = require('../models/Event');
 const Ticket = require('../models/Ticket');
 const multer = require('multer');
 const path = require('path');
+const { normalizeEventType, parseTicketsField, toBoolean } = require('../utils/eventUtils');
 
 const upload = multer({ dest: path.join('public', 'uploads') });
 
@@ -128,39 +129,12 @@ router.get('/my_organisation_dashboard_subscription', (req, res) => {
   res.render('my_organisation_dashboard_subscription', { activePage: 'subscription' });
 });
 
-// Route to create a new event et tickets associés
-router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
-  console.log('--- Données reçues du formulaire : ---');
-  console.log(req.body);
-  console.log('--------------------------------------');
-  try {
-    req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
-
-    // Convert checkbox values ("on" when checked) to booleans
-    const bookingStartPeriodSet = req.body.bookingStartPeriodSet === 'on';
-    const bookingEndPeriodSet = req.body.bookingEndPeriodSet === 'on';
-    const comInPrice = req.body.comInPrice === 'on';
-
-    // Map HTML event type codes to labels expected by the schema.
-    // If the form submits an array (old bug), keep only the first value.
-    const typeMap = {
-      club: 'Soirée club',
-      concert: 'Concert',
-      afterwork: 'Afterwork',
-      diner: 'Dîner - spectacle',
-      afterbeach: 'After beach',
-      festival: 'Festival',
-      garden: 'Garden - Journée détente',
-      spectacle: 'Spectacle',
-      excursion: 'Excursion',
-      animation: 'Animation en plein air',
-      match: 'Match ou exhibition sportive',
-      aboutSport: 'Evenement sportif',
-      seminaire: 'Séminaire - Convention Interne',
-      forum: 'Forum',
-      conference: 'Conférence',
-      congres: 'Congrès',
-      zen: 'Journée bien-être et remise en forme',
+        // Convert checkbox values to booleans
+        const bookingStartPeriodSet = toBoolean(req.body.bookingStartPeriodSet);
+        const bookingEndPeriodSet   = toBoolean(req.body.bookingEndPeriodSet);
+        const comInPrice            = toBoolean(req.body.comInPrice);
+        // Normalize event type from form value
+        const formattedType = normalizeEventType(req.body.type);
       atelier: 'Workshop',
       salon: 'Salon professionnel',
       autres: 'Salon grand public'
@@ -239,18 +213,21 @@ router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
     // Création des tickets associés si fournis
     const createdTickets = [];
     const failedTickets = [];
-    if (req.body.tickets) {
-      let tickets = [];
-      try {
-        tickets = typeof req.body.tickets === 'string'
-          ? JSON.parse(req.body.tickets)
-          : req.body.tickets;
-      } catch (e) {
-        console.error('Invalid tickets JSON', e);
-      }
+        // Create the event
+        // Create associated tickets if provided
+        const failedTickets = [];
+        const tickets = parseTicketsField(req.body.tickets);
 
-      for (const ticket of tickets) {
-        try {
+        for (const ticket of tickets) {
+            try {
+            } catch (err) {
+                failedTickets.push({ ticket, error: err.message });
+        res.status(201).json({
+            message: 'Event created successfully',
+            event: newEvent,
+            tickets: createdTickets,
+            failedTickets: failedTickets.length ? failedTickets : undefined
+        });
           const ticketData = {
             eventId: newEvent._id,
             name: ticket.name,
