@@ -130,17 +130,46 @@ router.get('/my_organisation_dashboard_subscription', (req, res) => {
 
 // Route to create a new event  
 router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
-	console.log('--- Données reçues du formulaire : ---');
-	console.log(req.body);
-	console.log('--------------------------------------');
-    try {  
-		req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
+        console.log('--- Données reçues du formulaire : ---');
+        console.log(req.body);
+        console.log('--------------------------------------');
+    try {
+                req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
+
+        const bookingStartPeriodSet = Boolean(req.body.bookingStartPeriodSet);
+        const bookingEndPeriodSet = Boolean(req.body.bookingEndPeriodSet);
+        const comInPrice = Boolean(req.body.comInPrice);
+
+        const typeMap = {
+            club: 'Soirée club',
+            concert: 'Concert',
+            afterwork: 'Afterwork',
+            diner: 'Dîner - spectacle',
+            afterbeach: 'After beach',
+            festival: 'Festival',
+            garden: 'Garden - Journée détente',
+            spectacle: 'Spectacle',
+            excursion: 'Excursion',
+            animation: 'Animation en plein air',
+            match: 'Match ou exhibition sportive',
+            aboutSport: 'Evenement sportif',
+            seminaire: 'Séminaire - Convention Interne',
+            forum: 'Forum',
+            conference: 'Conférence',
+            congres: 'Congrès',
+            zen: 'Journée bien-être et remise en forme',
+            atelier: 'Workshop',
+            salon: 'Salon professionnel',
+            autres: 'Salon grand public'
+        };
+
+        const formattedType = typeMap[req.body.type] || req.body.type;
 
         const flyerUrls = req.files ? req.files.map(file => '/uploads/' + file.filename) : [];
 
         const eventData = {
             organiserId: req.body.organiserId,
-            type: req.body.type,
+            type: formattedType,
             eventName: req.body.eventName,
             visibility: req.body.visibility,
             description: req.body.description,
@@ -159,18 +188,18 @@ router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
             capacity: req.body.capacity,  
             price: req.body.price,
 			
-            state: 'active',  
-  
-			bookingStartPeriodSet: req.body.bookingStartPeriodSet,			
+            state: 'active',
+
+                        bookingStartPeriodSet: bookingStartPeriodSet,
             bookingStartDate: req.body.bookingStartDate,  
             bookingStartHour: req.body.bookingStartHour,
 			
-            bookingEndPeriodSet: req.body.bookingEndPeriodSet,  
+            bookingEndPeriodSet: bookingEndPeriodSet,
             bookingEndingDate: req.body.bookingEndingDate,  
             bookingEndingHour: req.body.bookingEndingHour,
 			
-			duration: req.body.duration,
-			comInPrice: req.body.comInPrice, // je vien de rajouter ça le 5 novembre
+                        duration: req.body.duration,
+                        comInPrice: comInPrice, // je vien de rajouter ça le 5 novembre
               
             
 			// Initialisation des paramètres de remboursement simplifiés
