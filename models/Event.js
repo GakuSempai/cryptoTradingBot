@@ -10,7 +10,7 @@ const eventSchema = new mongoose.Schema({
   eventName: { type: String, maxlength: 300, required: true, index: true }, // Index sur name
   visibility: { type: String, enum: ['public', 'privé'], maxlength: 10, default: 'privé' },
   description: { type: String, maxlength: 20000 },
-  flyerUrl: { type: String, maxlength: 500 },
+  flyerUrls: [{ type: String, maxlength: 500 }],
   placeName: { type: String, maxlength: 100, required: true },
   addressLine1: { type: String, maxlength: 250, required: true },
   addressLine2: { type: String, maxlength: 250 },
