@@ -779,10 +779,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function validateFileInput(input, maxSize, allowedTypes, errorMsg) {
-        const file = input.files[0];
-        if (file && (file.size > maxSize || !allowedTypes.includes(file.type))) {
-            showError(input, errorMsg);
-            return false;
+        for (const file of input.files) {
+            if (file.size > maxSize || !allowedTypes.includes(file.type)) {
+                showError(input, errorMsg);
+                return false;
+            }
         }
         hideError(input);
         return true;

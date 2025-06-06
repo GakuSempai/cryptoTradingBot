@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
+const multer = require('multer');
+const path = require('path');
+
+const upload = multer({ dest: path.join('public', 'uploads') });
 
 // Page de création d'événements en ligne
 router.get('/create_online_event', (req, res) => {
@@ -125,20 +129,22 @@ router.get('/my_organisation_dashboard_subscription', (req, res) => {
 
 
 // Route to create a new event  
-router.post('/submit_event', async (req, res) => { 
+router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
 	console.log('--- Données reçues du formulaire : ---');
 	console.log(req.body);
 	console.log('--------------------------------------');
     try {  
 		req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
 
-        const eventData = {  
-            organiserId: req.body.organiserId,  
-            type: req.body.type,  
-            eventName: req.body.eventName,  
-            visibility: req.body.visibility,  
-            description: req.body.description,  
-            flyerUrl: req.body.flyerUrl,  
+        const flyerUrls = req.files ? req.files.map(file => '/uploads/' + file.filename) : [];
+
+        const eventData = {
+            organiserId: req.body.organiserId,
+            type: req.body.type,
+            eventName: req.body.eventName,
+            visibility: req.body.visibility,
+            description: req.body.description,
+            flyerUrls,
             placeName: req.body.placeName,  
             addressLine1: req.body.addressLine1,  
             addressLine2: req.body.addressLine2,  
