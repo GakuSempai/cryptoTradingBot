@@ -1,0 +1,92 @@
+create event venue :
+L'ajout de ticket dans l'interface fonctionne correctement en date du 28/08/2024 pour la V1 sans gestion de monnaies ni tickets gratuits
+
+29/08/2024
+Nous avons 2 choses importantes à voir maintenant : 
+1. Il nous manque une option à créer : Le concept d'invitation gratuite/ticket gratuit. Ce concept est primordial à ajouter, il implique lui aussi une logique à créer et des mises à jours des fonctions de notre interface. J'ai réalisé des changement dans l'interface je te fournirai le code modifié pour que tu découvre les modifications et que tu corriges mes erreurs, si j'en ai faites. Globalement les modifications du formulaire d'ajout de nouveau ticket que j'ai faites permettent de structurer l'affichage et d'incorporer le concept de ticket gratuit. J'ai ajouté une section "Tarification" qui contient dorénavant le prix et la monnaie à utiliser. Le premier paramètre de cette section est une checkbox. Cette checkbox permet de savoir si il s'agit d'un ticket gratuit que nous créons ou pas. Lorsque la checkbox est cochée le prix est gratuit donc les informations "ticketprice" , "currency"  et les infos de réduction disparaissent. Dans les modifications à créer, Un ticket gratuit aura donc "No discount" dans la colonne discount du récapitulatif de ticket une fois créé sur la page. Le deuxième paramètre de cette section est le prix, un nombre qui peut être très grand en fonction de la monnaie choisie. Le troisième paramètre est la monnaie, appelée encore "Currency". Il s'agit d'une liste de 3 choix, Eur,Usd,Fcfa. La limite maximale est de 10000000 pour ce nombre. et le minimum valide est de 5.
+
+
+2. J'ai découvert un fichier custom.js inclus dans le Template de code et importé dans chaque page du site. Ce fichier gère de nombreuses petites fonctionnalités de l'interface. j'ai découvert que c'est ce fichier qui gère les fonctionnalités de checkbox de la page création d'événements. Par exemple C'est en ajoutant un paramètre de class "disabled-action" aux champs de prix et réductions qu'ils deviennent géré par la checkbox de class "free-event-ticketing" définie dans le fichier custom.js. Grâce à ce paramètre, lorsque l'on coche la checkbox dont l'id est "free-event-ticketing", tous les composants de class "disabled-action" disparaissent. De même, il y a une fonction qui permet d'afficher ou cacher les infos de réductions dans le formulaire modal. Voici les deux fonctions dont je te parle : 
+La fonction pour gérer la checkbox de discount dans le formulaire modal de création de ticket :
+"
+// Early Bird Discount Switch Button
+$(document).ready(function(){
+	$("#bird-discount").on("change", function(e) {
+  	const isOn = e.currentTarget.checked;
+    
+    if (isOn) {
+    	$(".online-event-discount-wrapper").show();
+    } else {
+    	$(".online-event-discount-wrapper").hide();
+    }
+  });
+});
+"
+
+
+La fonction pour gérer la checkbox de discount dans le formulaire modal de création de ticket :
+"
+// Free Event Ticketing Switch Button
+
+$(document).ready(function(){
+	$("#free-event-ticketing").on("change", function(e) {
+  	const isOn = e.currentTarget.checked;
+    
+    if (isOn) {
+    	$(".disabled-action").hide();
+    } else {
+    	$(".disabled-action").show();
+    }
+  });
+});
+"
+Partie Infos Event :
+
+Partie Ajout de Tickets :
+C'est le fichier add-tickets.js qui permet de rajouter un nouveau ticket à la liste. Il fautd donc bien le paramtrer, il se situe dans le dossier js
+J'ai modifié les paramètres : 
+Event Name
+type
+
+
+ok pour le moment on est toujours dans la partie avec la création de nouveaux events physiques. Les points à travailler actuellement sont : 
+- aouter un compteur qui dit le nombre de ticket de la liste de tickets de l'evenement.
+- les checkbox de la fin du formulaire ne sont pas toutes gérées. il faut encore trouver la logique pour les différentes valeures du paramètre refundability
+-j'ai modifié le paramètre refundability dans le fichier EVENT.JS pour que par défaut on soit sur la valeur "forbidden"
+-j'ai ajouté la ligne refundabilitySet: { type: Boolean, required: true, default: 'false' }, aux paramètres de EVENT et j'ai ajouté son utilisation dans le process dans EventRoute
+- attention, j'ai ajouté 2 paramètres au model event et donc à eventroute : refunddelay-manual et refunddelay-auto, on verra ce que ça donne
+- j'ai ajouté un paramètre : refundPolicy:{type: String, enum: ['refund-id-1', 'refund-id-2']}, // variable qui dit quelle checkbox est activée entre remboursement automatic et remboursement manuel
+- J'ai ajouté le paramètre comeInPrice dans le model Event et j'ai donc ajouté la ligne necessaire dans la route pour récupérer le paramètre dans le formulaire du site dans la page create_venue_event
+
+Pour identifier le type de remboursement parmi les options possibles j'ai créé un petit algorithme que j'aimerai  que tu traduise en code : 
+
+// Gérer le paramètre refundability en fonction de la saisie du formulaire, voici la logique à avoir : 
+		
+		Variables : 
+		refundabilitySet : boolean
+		refundability : string enum
+		refundPolicy : string enum
+		
+		Début : 
+		Si la checkbox de name="refundabilitySet" est cochée alors eventData.refundability = forbiden et on ne regarde pas les autres conditions.
+		Si la checkbox name="refundabilitySet" n'est pas cochée
+		alors : 
+			Si la checkbox de name="refund_policy_id" a pour valeur="refund-id-1"
+			alors : 
+				eventData.refundability="manual"
+				eventData.refundDelay =eventData.refundDelay-manual
+			Sinon si la checkbox de name="refund_policy_id" a pour valeur="refund-id-2"
+			alors :
+				eventData.refundability="automatic"
+				ventData.refundDelay =eventData.refundDelay-auto
+
+08/11/2023 : Traitelent front-end de tous type de remboursement sont maintenant fonctionnels. Nous avons aussi fait en sorte que les valeurs saisies s'effacent si on recoche la checkbox de remboursement. Nous avons aussi limité les saisies et implémenté des fonctions dans le fichier custom.js pour gérer tout cela.
+
+Prompt en cours : 
+J'aime bien cette approche. Je vais donc approfondir l'analyse avec toi. Les trois sections de mon Formulaire sont : Details, Tickets, Setting.
+
+Actuellement nous travaillons la troisième section nommée Setting incluant parmi ses champs la gestion de remboursement que nous avons travaillé ensemble. Pour un aspect visuel agréable à la vue de l'utilisateur, tous les champs principax de cette section sont formulés sous forme de checkbox tout comme notre paramètre lié à refundability. Nous devons travailler et maîtriser l'ensemble des champs de chaque section en terme de : 
+- Suppression de contenu en cas de checkbox cochée
+- Contrôle de saisies utilisateur sur les inputs.
+
+Pour continuer, étant donné que nous somme déjà dans la section Setting, je vais te fournir le code complet de cette section et nous allons traiter les entrées et suppressions de valeurs necessaires. N'oublies pas que l'affichage/masquage des champs existe déjà dans le code pour chaque champs. Voici le code html de la section Setting : 

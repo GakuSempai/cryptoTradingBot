@@ -1,0 +1,92 @@
+events/
+├── public/
+│   ├── css/
+│   ├── fonts/
+│   ├── images/
+│   ├── js/
+│   ├── vendor/
+│   │   ├── bootstrap/
+│   │   ├── bootstrap-datetimepicker/
+│   │   ├── bootstrap-select/
+│   │   ├── calendar/
+│   │   ├── chartist/
+│   │   ├── chartist-plugin-tooltip/
+│   │   ├── charts/
+│   │   ├── fontawesome-free
+│   │   ├── mixitup/
+│   │   ├── OwlCarousel/
+│   │   └── unicons-2.0.1
+
+│   └── error_404.html
+
+├── sass/
+│   ├── import/
+│   ├── rating.scss
+│   └── vertical-responsive-menu
+├── views/
+│   ├── about_us.ejs
+│   ├── coming_soon.ejs
+│   ├── contact_us.ejs
+│   ├── create.ejs
+│   ├── faq.ejs
+│   ├── help_article_detail_view.ejs
+│   ├── help_center.ejs
+│   ├── help_center_knowledge_base.ejs
+│   ├── help_section_detail_view.ejs
+│   ├── pricing.ejs
+│   ├── privacy_policy.ejs
+│   ├── sell_tickets_online.ejs
+│   ├── term_and_conditions.ejs
+│   ├── attendee_profile_view.ejs
+│   ├── blog_detail_view.ejs
+│   ├── booking_confirmed.ejs
+│   ├── checkout.ejs
+│   ├── checkout_premium.ejs
+│   ├── create_online_event.ejs
+│   ├── create_venue_event.ejs
+│   ├── explore_events.ejs
+│   ├── explore_events_by_date.ejs
+│   ├── forgot_password.ejs
+│   ├── index.ejs
+│   ├── invoice.ejs
+│   ├── my_organisation_dashboard.ejs
+│   ├── my_organisation_dashboard_about.ejs
+│   ├── my_organisation_dashboard_contact_lists.ejs
+│   ├── my_organisation_dashboard_conversion_setup.ejs
+│   ├── my_organisation_dashboard_events.ejs
+│   ├── my_organisation_dashboard_my_team.ejs
+│   ├── my_organisation_dashboard_payout.ejs
+│   ├── my_organisation_dashboard_promotion.ejs
+│   ├── my_organisation_dashboard_reports.ejs
+│   ├── my_organisation_dashboard_subscription.ejs
+│   ├── online_event_detail_view.ejs
+│   ├── organiser_profile_view.ejs
+│   ├── our_blog.ejs
+│   ├── refer_a_friend.ejs
+│   ├── sign_in.ejs
+│   ├── sign_up.ejs
+│   ├── venue_event_detail_view.ejs
+│   ├── partials/
+│   │   ├── navbar.ejs
+│   │   ├── footer.ejs
+│   │   └── leftbar.ejs
+├── models/
+│   ├── Event.js
+│   ├── EventTicket.js
+│   ├── Organizer.js
+│   ├── OrganizerUser.js
+│   ├── Participant.js
+│   ├── Ticket.js
+│   ├── Transaction.js
+│   ├── User.js
+├── routes/
+│   ├── eventRoutes.js
+│   ├── staticRoutes.js
+│   ├── userRoutes.js
+│   ├── ticketRoutes.js
+├── server.js
+├── package.json
+└── package-lock.json
+
+pour lancer localement autogen :
+litllm --model ollama/qwen2
