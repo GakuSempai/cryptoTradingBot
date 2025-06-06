@@ -165,7 +165,11 @@ router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
             autres: 'Salon grand public'
         };
 
-        const formattedType = typeMap[req.body.type] || req.body.type;
+        let typeValue = req.body.type;
+        if (Array.isArray(typeValue)) {
+            typeValue = typeValue[0];
+        }
+        const formattedType = typeMap[typeValue] || typeValue;
 
         const flyerUrls = req.files ? req.files.map(file => '/uploads/' + file.filename) : [];
 
