@@ -142,6 +142,8 @@ router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
         const comInPrice = Boolean(req.body.comInPrice);
 
         // Map HTML event type codes to labels expected by the schema
+        // and handle the case where an array is submitted by keeping
+        // only the first selected value.
         const typeMap = {
             club: 'Soirée club',
             concert: 'Concert',
