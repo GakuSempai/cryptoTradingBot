@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
+const multer = require('multer');
+const path = require('path');
+
+const upload = multer({ dest: path.join('public', 'uploads') });
 
 // Page de création d'événements en ligne
 router.get('/create_online_event', (req, res) => {
@@ -125,20 +129,53 @@ router.get('/my_organisation_dashboard_subscription', (req, res) => {
 
 
 // Route to create a new event  
-router.post('/submit_event', async (req, res) => { 
-	console.log('--- Données reçues du formulaire : ---');
-	console.log(req.body);
-	console.log('--------------------------------------');
-    try {  
-		req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
+router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
+        console.log('--- Données reçues du formulaire : ---');
+        console.log(req.body);
+        console.log('--------------------------------------');
+    try {
+                req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
 
-        const eventData = {  
-            organiserId: req.body.organiserId,  
-            type: req.body.type,  
-            eventName: req.body.eventName,  
-            visibility: req.body.visibility,  
-            description: req.body.description,  
-            flyerUrl: req.body.flyerUrl,  
+        // Normalize boolean checkboxes from the form
+        const bookingStartPeriodSet = Boolean(req.body.bookingStartPeriodSet);
+        const bookingEndPeriodSet = Boolean(req.body.bookingEndPeriodSet);
+        const comInPrice = Boolean(req.body.comInPrice);
+
+        // Map HTML event type codes to labels expected by the schema
+        const typeMap = {
+            club: 'Soirée club',
+            concert: 'Concert',
+            afterwork: 'Afterwork',
+            diner: 'Dîner - spectacle',
+            afterbeach: 'After beach',
+            festival: 'Festival',
+            garden: 'Garden - Journée détente',
+            spectacle: 'Spectacle',
+            excursion: 'Excursion',
+            animation: 'Animation en plein air',
+            match: 'Match ou exhibition sportive',
+            aboutSport: 'Evenement sportif',
+            seminaire: 'Séminaire - Convention Interne',
+            forum: 'Forum',
+            conference: 'Conférence',
+            congres: 'Congrès',
+            zen: 'Journée bien-être et remise en forme',
+            atelier: 'Workshop',
+            salon: 'Salon professionnel',
+            autres: 'Salon grand public'
+        };
+
+        const formattedType = typeMap[req.body.type] || req.body.type;
+
+        const flyerUrls = req.files ? req.files.map(file => '/uploads/' + file.filename) : [];
+
+        const eventData = {
+            organiserId: req.body.organiserId,
+            type: formattedType,
+            eventName: req.body.eventName,
+            visibility: req.body.visibility,
+            description: req.body.description,
+            flyerUrls,
             placeName: req.body.placeName,  
             addressLine1: req.body.addressLine1,  
             addressLine2: req.body.addressLine2,  
@@ -153,18 +190,18 @@ router.post('/submit_event', async (req, res) => {
             capacity: req.body.capacity,  
             price: req.body.price,
 			
-            state: 'active',  
-  
-			bookingStartPeriodSet: req.body.bookingStartPeriodSet,			
+            state: 'active',
+
+                        bookingStartPeriodSet: bookingStartPeriodSet,
             bookingStartDate: req.body.bookingStartDate,  
             bookingStartHour: req.body.bookingStartHour,
 			
-            bookingEndPeriodSet: req.body.bookingEndPeriodSet,  
+            bookingEndPeriodSet: bookingEndPeriodSet,
             bookingEndingDate: req.body.bookingEndingDate,  
             bookingEndingHour: req.body.bookingEndingHour,
 			
-			duration: req.body.duration,
-			comInPrice: req.body.comInPrice, // je vien de rajouter ça le 5 novembre
+                        duration: req.body.duration,
+                        comInPrice: comInPrice, // je vien de rajouter ça le 5 novembre
               
             
 			// Initialisation des paramètres de remboursement simplifiés
