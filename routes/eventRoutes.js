@@ -130,139 +130,116 @@ router.get('/my_organisation_dashboard_subscription', (req, res) => {
 
 // Route to create a new event  
 router.post('/submit_event', upload.array('flyerfile', 3), async (req, res) => {
-        console.log('--- Données reçues du formulaire : ---');
-        console.log(req.body);
-        console.log('--------------------------------------');
-    try {
-        req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
-        const typeMap = {
-            club: 'Soirée club',
-            concert: 'Concert',
-            afterwork: 'Afterwork',
-            diner: 'Dîner - spectacle',
-            afterbeach: 'After beach',
-            festival: 'Festival',
-            garden: 'Garden - Journée détente',
-            spectacle: 'Spectacle',
-            excursion: 'Excursion',
-            animation: 'Animation en plein air',
-            match: 'Match ou exhibition sportive',
-            aboutSport: 'Evenement sportif',
-            seminaire: 'Séminaire - Convention Interne',
-            forum: 'Forum',
-            conference: 'Conférence',
-            congres: 'Congrès',
-            zen: 'Journée bien-être et remise en forme',
-            atelier: 'Workshop',
-            salon: 'Salon professionnel',
-            autres: 'Salon grand public'
-        };
+  console.log('--- Données reçues du formulaire : ---');
+  console.log(req.body);
+  console.log('--------------------------------------');
+  try {
+    req.body.organiserId = "65f0b5118b6feec6c5bb8420"; // remplace avec un ObjectId valide de ta base
 
+    // Convert checkbox values ("on" when checked) to booleans
+    const bookingStartPeriodSet = req.body.bookingStartPeriodSet === 'on';
+    const bookingEndPeriodSet = req.body.bookingEndPeriodSet === 'on';
+    const comInPrice = req.body.comInPrice === 'on';
 
-        let typeValue = req.body.type;
-        if (Array.isArray(typeValue)) {
-            typeValue = typeValue[0];
-        }
-        const formattedType = typeMap[typeValue] || typeValue;
-        const flyerUrls = req.files ? req.files.map(file => '/uploads/' + file.filename) : [];
-        const eventData = {
-            organiserId: req.body.organiserId,
-            type: formattedType,
-            eventName: req.body.eventName,
-            visibility: req.body.visibility,
-            description: req.body.description,
-            flyerUrls,
-            placeName: req.body.placeName,  
-            addressLine1: req.body.addressLine1,  
-            addressLine2: req.body.addressLine2,  
-            zipCode: req.body.zipCode,  
-            city: req.body.city,  
-            country: req.body.country,  
-            eventStartDate: req.body.eventStartDate,  
-            eventStartTime: req.body.eventStartTime,  
-            eventEndDate: req.body.eventEndDate,  
-            eventEndTime: req.body.eventEndTime,  
-            timeZone: req.body.timeZone,  
-            capacity: req.body.capacity,  
-            price: req.body.price,
-			
-            state: 'active',
+    // Map HTML event type codes to labels expected by the schema.
+    // If the form submits an array (old bug), keep only the first value.
+    const typeMap = {
+      club: 'Soirée club',
+      concert: 'Concert',
+      afterwork: 'Afterwork',
+      diner: 'Dîner - spectacle',
+      afterbeach: 'After beach',
+      festival: 'Festival',
+      garden: 'Garden - Journée détente',
+      spectacle: 'Spectacle',
+      excursion: 'Excursion',
+      animation: 'Animation en plein air',
+      match: 'Match ou exhibition sportive',
+      aboutSport: 'Evenement sportif',
+      seminaire: 'Séminaire - Convention Interne',
+      forum: 'Forum',
+      conference: 'Conférence',
+      congres: 'Congrès',
+      zen: 'Journée bien-être et remise en forme',
+      atelier: 'Workshop',
+      salon: 'Salon professionnel',
+      autres: 'Salon grand public'
+    };
 
-                        bookingStartPeriodSet: bookingStartPeriodSet,
-            bookingStartDate: req.body.bookingStartDate,  
-            bookingStartHour: req.body.bookingStartHour,
-			
-            bookingEndPeriodSet: bookingEndPeriodSet,
-            bookingEndingDate: req.body.bookingEndingDate,  
-            bookingEndingHour: req.body.bookingEndingHour,
-			
-                        duration: req.body.duration,
-                        comInPrice: comInPrice, // je vien de rajouter ça le 5 novembre
-              
-            
-			// Initialisation des paramètres de remboursement simplifiés
-            refundability: 'forbidden', // Valeur par défaut
-            refundDelay: null, // Rempli si applicable
-            refundPercentage: null // Rempli si applicable
-			
+    let typeValue = req.body.type;
+    if (Array.isArray(typeValue)) {
+      typeValue = typeValue[0];
+    }
+    const formattedType = typeMap[typeValue] || typeValue;
+    const flyerUrls = req.files ? req.files.map(file => '/uploads/' + file.filename) : [];
 
-			
-			
-        };  
-  
-		console.log('Données reçues du formulaire :', req.body);
-  
-		// Gérer le paramètre refundability en fonction de la saisie du formulaire
-		/* voici la logique à avoir : 
-		
-		Variables : 
-		refundabilitySet : boolean
-		refundability : string enum
-		refundPolicy : string enum
-		
-		Début : 
-		Si la checkbox de name="refundabilitySet" est cochée alors eventData.refundability = forbiden et on ne regarde pas les autres conditions.
-		Si la checkbox name="refundabilitySet" n'est pas cochée
-		alors : 
-			Si la checkbox de name="refund_policy_id" a pour valeur="refund-id-1"
-			alors : 
-				eventData.refundability="manual"
-				eventData.refundDelay = contenu de la variable de naame="refundDelay-manual"
-			Sinon si la checkbox de name="refund_policy_id" a pour valeur="refund-id-2"
-			alors :
-				eventData.refundability="automatic"
-				eventData.refundDelay =eventData.refundDelay-auto
-				eventData.refundPercentage = valeur du champs de name "refundPercentage"
-		
-		*/
-		 // Logique de gestion des paramètres de remboursement
-        if (req.body.refundabilitySet === 'true') {
-            // Cas où le remboursement est interdit
-            eventData.refundability = 'forbidden';
-			eventData.refundDelay = null; // Pas de délai de remboursement
-			eventData.refundPercentage = null; // Pas de pourcentage de remboursement
-        } else {
-            // Remboursement permis, déterminer le type de remboursement et le délai
-            if (req.body.refund_policy_id === 'refund-id-1') {
-                eventData.refundability = 'manual';
-                eventData.refundDelay = req.body['refundDelay-manual'] || null;
-            } else if (req.body.refund_policy_id === 'refund-id-2') {
-                eventData.refundability = 'automatic';
-                eventData.refundDelay = req.body['refundDelay-auto'] || null;
-                eventData.refundPercentage = req.body.refundPercentage || null;
-            }
-        }
-		
-		// après avoir fait tous les traitements de valeurs et de conditions on doit pouvoir crééer un nouvel event : 
-	
-        // Create a new event		
-        const newEvent = new Event(eventData);  
-        await newEvent.save();  
-  
-        res.status(201).json({ message: 'Event created successfully', event: newEvent });  
-    } catch (error) {  
-        res.status(500).json({ message: 'Error creating event', error });  
-    }  
-});  
+    const eventData = {
+      organiserId: req.body.organiserId,
+      type: formattedType,
+      eventName: req.body.eventName,
+      visibility: req.body.visibility,
+      description: req.body.description,
+      flyerUrls,
+      placeName: req.body.placeName,
+      addressLine1: req.body.addressLine1,
+      addressLine2: req.body.addressLine2,
+      zipCode: req.body.zipCode,
+      city: req.body.city,
+      country: req.body.country,
+      eventStartDate: req.body.eventStartDate,
+      eventStartTime: req.body.eventStartTime,
+      eventEndDate: req.body.eventEndDate,
+      eventEndTime: req.body.eventEndTime,
+      timeZone: req.body.timeZone,
+      capacity: req.body.capacity,
+      price: req.body.price,
+      state: 'active',
+
+      bookingStartPeriodSet,
+      bookingStartDate: req.body.bookingStartDate,
+      bookingStartHour: req.body.bookingStartHour,
+
+      bookingEndPeriodSet,
+      bookingEndingDate: req.body.bookingEndingDate,
+      bookingEndingHour: req.body.bookingEndingHour,
+
+      duration: req.body.duration,
+      comInPrice, // je vien de rajouter ça le 5 novembre
+
+      // Initialisation des paramètres de remboursement simplifiés
+      refundability: 'forbidden', // Valeur par défaut
+      refundDelay: null, // Rempli si applicable
+      refundPercentage: null // Rempli si applicable
+    };
+
+    console.log('Données reçues du formulaire :', req.body);
+
+    // Logique de gestion des paramètres de remboursement
+    if (req.body.refundabilitySet === 'true') {
+      // Cas où le remboursement est interdit
+      eventData.refundability = 'forbidden';
+      eventData.refundDelay = null; // Pas de délai de remboursement
+      eventData.refundPercentage = null; // Pas de pourcentage de remboursement
+    } else {
+      // Remboursement permis, déterminer le type de remboursement et le délai
+      if (req.body.refund_policy_id === 'refund-id-1') {
+        eventData.refundability = 'manual';
+        eventData.refundDelay = req.body['refundDelay-manual'] || null;
+      } else if (req.body.refund_policy_id === 'refund-id-2') {
+        eventData.refundability = 'automatic';
+        eventData.refundDelay = req.body['refundDelay-auto'] || null;
+        eventData.refundPercentage = req.body.refundPercentage || null;
+      }
+    }
+
+    // après avoir fait tous les traitements de valeurs et de conditions on doit pouvoir créer un nouvel event : 
+    const newEvent = new Event(eventData);
+    await newEvent.save();
+
+    res.status(201).json({ message: 'Event created successfully', event: newEvent });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating event', error });
+  }
+});
 
 module.exports = router;
